@@ -4,53 +4,57 @@ from __future__ import annotations
 import argparse
 import getpass
 import socket
+import sys
 import tkinter as tk
 from tkinter import scrolledtext
 
+from . import commands
 from .parser import ParseError, parse
+from .vfs import VFS
 
 
 class ShellEmulator:
-    """GUI-эмулятор командной оболочки (Этап 1)."""
+    """GUI-эмулятор командной оболочки."""
 
-    def __init__(self, root: tk.Tk, vfs_name: str = "vfs"):
+    def __init__(self, root: tk.Tk, vfs: VFS):
         self.root = root
-        self.vfs_name = vfs_name
-        self.cwd = "/"
+        self.vfs = vfs
 
-        # Заголовок окна на основе реальных данных ОС
         username = getpass.getuser()
         hostname = socket.gethostname()
         self.root.title(f"Эмулятор - [{username}@{hostname}]")
         self.root.geometry("800x600")
 
-        # Область вывода
         self.output = scrolledtext.ScrolledText(
             root, wrap=tk.WORD, state=tk.DISABLED, font=("Consolas", 11)
         )
         self.output.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
-        # Метка приглашения
         self.prompt_label = tk.Label(root, text=self._prompt(), anchor="w")
         self.prompt_label.pack(fill=tk.X, padx=5)
 
-        # Поле ввода
         self.entry = tk.Entry(root, font=("Consolas", 11))
         self.entry.pack(fill=tk.X, padx=5, pady=(0, 5))
         self.entry.bind("<Return>", self._on_enter)
         self.entry.focus_set()
 
-        self._print(f"Добро пожаловать в {self.vfs_name}!")
+        self._print(f"Добро пожаловать в {self.vfs.name}!")
         self._print("Введите 'exit' для выхода.\n")
+        self._show_motd()
 
     def _prompt(self) -> str:
-        return f"{self.vfs_name}:{self.cwd}$ "
+        return f"{self.vfs.name}:{self.vfs.cwd.name}$ "
 
     def _print(self, text: str) -> None:
         self.output.configure(state=tk.NORMAL)
         self.output.insert(tk.END, text + "\n")
         self.output.see(tk.END)
         self.output.configure(state=tk.DISABLED)
+
+    def _show_motd(self) -> None:
+        motd = self.vfs.root.children.get("motd")
+        if motd and not motd.is_dir:
+            self._print(motd.content)
 
     def _on_enter(self, event) -> None:
         line = self.entry.get()
@@ -59,7 +63,10 @@ class ShellEmulator:
             return
         self._print(f"{self._prompt()}{line}")
         self._execute(line)
-        self.prompt_label.config(text=self._prompt())
+        try:
+            self.prompt_label.config(text=self._prompt())
+        except tk.TclError:
+            pass
 
     def _execute(self, line: str) -> None:
         try:
@@ -68,30 +75,46 @@ class ShellEmulator:
             self._print(f"Ошибка: {exc}")
             return
 
-        if cmd == "exit":
+        handler = get_handler(cmd)
+        if handler is None:
+            self._print(f"Ошибка: неизвестная команда '{cmd}'")
+            return
+
+        try:
+            result = handler(self.vfs, args)
+            if result:
+                self._print(result)
+        except commands.CommandError as exc:
+            self._print(f"Ошибка: {exc}")
+        except FileNotFoundError as exc:
+            self._print(f"Ошибка: {exc}")
+        except SystemExit:
             self.root.destroy()
-            return
 
-        if cmd == "ls":
-            self._print(f"ls: {args} (заглушка)")
-            return
 
-        if cmd == "cd":
-            self._print(f"cd: {args} (заглушка)")
-            return
+HANDLERS = {
+    "ls": commands.cmd_ls,
+    "cd": commands.cmd_cd,
+    "tac": commands.cmd_tac,
+    "du": commands.cmd_du,
+    "mv": commands.cmd_mv,
+    "vfs-save": commands.cmd_vfs_save,
+    "exit": commands.cmd_exit,
+}
 
-        self._print(f"Ошибка: неизвестная команда '{cmd}'")
+
+def get_handler(cmd: str):
+    return HANDLERS.get(cmd)
 
 
 def parse_args() -> argparse.Namespace:
-    """Разбор аргументов командной строки."""
     parser = argparse.ArgumentParser(description="Эмулятор оболочки ОС")
-    parser.add_argument("--vfs", type=str, help="Путь к VFS")
+    parser.add_argument("--vfs", type=str, help="Путь к ZIP-архиву VFS")
     parser.add_argument("--script", type=str, help="Путь к стартовому скрипту")
     return parser.parse_args()
 
 
-def run_script(path: str) -> None:
+def run_script(vfs: VFS, path: str) -> None:
     """Выполняет стартовый скрипт, пропуская ошибочные строки."""
     try:
         with open(path, "r", encoding="utf-8") as f:
@@ -99,30 +122,27 @@ def run_script(path: str) -> None:
                 line = line.rstrip("\n")
                 if not line.strip() or line.strip().startswith("#"):
                     continue
-
-                # Имитация диалога: показываем ввод
                 print(f">>> {line}")
-
                 try:
                     cmd, args = parse(line)
                 except ParseError as exc:
                     print(f"Ошибка: {exc}")
                     continue
-
-                if cmd == "exit":
-                    return
-                if cmd == "ls":
-                    print(f"ls: {args} (заглушка)")
-                elif cmd == "cd":
-                    print(f"cd: {args} (заглушка)")
-                else:
+                handler = get_handler(cmd)
+                if handler is None:
                     print(f"Ошибка: неизвестная команда '{cmd}'")
+                    continue
+                try:
+                    result = handler(vfs, args)
+                    if result:
+                        print(result)
+                except Exception as exc:  # noqa: BLE001
+                    print(f"Ошибка: {exc}")
     except FileNotFoundError:
         print(f"Ошибка: скрипт '{path}' не найден")
 
 
 def main() -> None:
-    """Точка входа."""
     args = parse_args()
 
     print("=" * 40)
@@ -131,14 +151,20 @@ def main() -> None:
     print(f"  Скрипт: {args.script}")
     print("=" * 40)
 
-    # Если задан скрипт — выполняем его и выходим
+    vfs = VFS(name="vfs")
+    if args.vfs:
+        try:
+            vfs.load_from_zip(args.vfs)
+        except RuntimeError as exc:
+            print(f"Ошибка загрузки VFS: {exc}")
+            sys.exit(1)
+
     if args.script:
-        run_script(args.script)
+        run_script(vfs, args.script)
         return
 
-    # Иначе — GUI
     root = tk.Tk()
-    ShellEmulator(root, vfs_name="vfs")
+    ShellEmulator(root, vfs)
     root.mainloop()
 
 

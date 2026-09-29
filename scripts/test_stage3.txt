@@ -1,0 +1,11 @@
+# Этап 3: тестирование VFS
+ls
+cd a/b/c
+ls
+tac deep.txt
+du /
+cd /
+tac multiline.txt
+vfs-save /tmp/vfs_saved.zip
+ls
+exit
