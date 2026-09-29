@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Виртуальное окружение
+.venv/
+venv/
+env/
+
+# PyCharm
+.idea/
+*.iml
+
+# Логи и временные файлы
+*.log
+*.tmp
+.DS_Store
