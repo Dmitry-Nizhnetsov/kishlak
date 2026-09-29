@@ -78,3 +78,40 @@ GUI-эмулятор UNIX-подобной командной строки на 
     Ошибка: неизвестная команда 'unknown_command'
     >>> cd $HOME
     cd: ['/Users/dmitrijniznecov'] (заглушка)
+## Этап 2. Конфигурация
+
+- Параметры командной строки: `--vfs`, `--script`.
+- **Стартовый скрипт пропускает ошибочные строки** и имитирует диалог (показывает ввод и вывод).
+- Отладочный вывод всех параметров при запуске.
+- Скрипты реальной ОС в `os_scripts/`.
+
+### Запуск
+
+    # GUI без скрипта
+    python3 -m src.main
+
+    # со стартовым скриптом
+    python3 -m src.main --script scripts/test_stage2.txt
+
+    # через скрипт ОС
+    ./os_scripts/run_stage2.sh
+
+### Демонстрация
+
+    $ python3 -m src.main --script scripts/test_stage2.txt
+    ========================================
+    Параметры запуска:
+      VFS: None
+      Скрипт: scripts/test_stage2.txt
+    ========================================
+    >>> ls
+    ls: [] (заглушка)
+    >>> cd docs
+    cd: ['docs'] (заглушка)
+    >>> unknown_command
+    Ошибка: неизвестная команда 'unknown_command'
+    >>> cd $HOME
+    cd: ['/Users/dmitrijniznecov'] (заглушка)
+    >>> foo bar
+    Ошибка: неизвестная команда 'foo'
+    >>> exit
