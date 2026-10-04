@@ -1,0 +1,16 @@
+# Этап 4: ls, cd, tac, du
+ls
+cd a
+ls
+cd b/c
+ls
+tac deep.txt
+du /
+du a
+du a/b/c/deep.txt
+cd /
+tac multiline.txt
+ls nonexistent
+cd no_such_dir
+tac no_such_file.txt
+exit
