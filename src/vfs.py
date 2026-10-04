@@ -24,13 +24,8 @@ class VFS:
         self.root = VFSNode("/", is_dir=True)
         self.cwd = self.root
 
-    # ---------- Загрузка из ZIP ----------
-
     def load_from_zip(self, path: str) -> None:
-        """Загружает VFS из ZIP-архива.
-
-        Бинарные файлы кодируются в base64.
-        """
+        """Загружает VFS из ZIP-архива. Бинарные файлы — в base64."""
         try:
             with zipfile.ZipFile(path, "r") as zf:
                 self.root = VFSNode("/", is_dir=True)
@@ -42,7 +37,7 @@ class VFS:
             raise RuntimeError(f"Неверный формат VFS: {path}") from exc
 
     def _build_from_zip(self, zf: zipfile.ZipFile) -> None:
-        """Рекурсивно строит дерево узлов из содержимого ZIP."""
+        """Строит дерево узлов из содержимого ZIP."""
         for info in zf.infolist():
             parts = [p for p in info.filename.split("/") if p]
             if not parts:
@@ -66,8 +61,6 @@ class VFS:
                     content = base64.b64encode(raw).decode("ascii")
                 node.children[last] = VFSNode(last, is_dir=False, content=content)
 
-    # ---------- Сохранение в ZIP (vfs-save) ----------
-
     def save_to_zip(self, path: str) -> None:
         """Сохраняет VFS обратно в ZIP-архив."""
         with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as zf:
@@ -86,10 +79,8 @@ class VFS:
                     data = child.content.encode("utf-8")
                 zf.writestr(full, data)
 
-    # ---------- Навигация ----------
-
     def resolve(self, path: str) -> VFSNode:
-        """Возвращает узел по пути (абсолютному или относительному)."""
+        """Возвращает узел по пути."""
         if not path or path == "/":
             return self.root
 
@@ -113,8 +104,7 @@ class VFS:
         return node
 
     def _find_parent(self, target: VFSNode) -> VFSNode | None:
-        """Ищет родителя узла (обход дерева)."""
-
+        """Ищет родителя узла."""
         def walk(node: VFSNode) -> VFSNode | None:
             for child in node.children.values():
                 if child is target:
@@ -124,5 +114,4 @@ class VFS:
                     if found:
                         return found
             return None
-
         return walk(self.root)

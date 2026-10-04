@@ -9,7 +9,7 @@ class CommandError(Exception):
 
 
 def cmd_ls(vfs: VFS, args: list[str]) -> str:
-    """Вывод содержимого директории."""
+    """Список содержимого директории."""
     target = args[0] if args else "."
     node = vfs.resolve(target)
     if not node.is_dir:
@@ -43,8 +43,7 @@ def cmd_du(vfs: VFS, args: list[str]) -> str:
     """Размер файла или директории в байтах."""
     target = args[0] if args else "."
     node = vfs.resolve(target)
-    size = _node_size(node)
-    return f"{size}\t{target}"
+    return f"{_node_size(node)}\t{target}"
 
 
 def _node_size(node: VFSNode) -> int:
@@ -54,7 +53,7 @@ def _node_size(node: VFSNode) -> int:
 
 
 def cmd_mv(vfs: VFS, args: list[str]) -> str:
-    """Перемещение/переименование файла или директории."""
+    """Перемещение/переименование."""
     if len(args) < 2:
         raise CommandError("mv: нужен источник и назначение")
     src_path, dst_path = args[0], args[1]
@@ -88,7 +87,7 @@ def cmd_mv(vfs: VFS, args: list[str]) -> str:
 
 
 def cmd_vfs_save(vfs: VFS, args: list[str]) -> str:
-    """Сохраняет текущее состояние VFS на диск в ZIP."""
+    """Сохраняет VFS в ZIP."""
     if not args:
         raise CommandError("vfs-save: укажите путь")
     try:
@@ -99,5 +98,5 @@ def cmd_vfs_save(vfs: VFS, args: list[str]) -> str:
 
 
 def cmd_exit(vfs: VFS, args: list[str]) -> str:
-    """Выход из эмулятора."""
+    """Выход."""
     raise SystemExit(0)

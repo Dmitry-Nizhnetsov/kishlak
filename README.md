@@ -149,3 +149,39 @@ GUI-эмулятор UNIX-подобной командной строки с в
 ## Тесты
 
     pytest tests/ -v
+## Этап 3. VFS из ZIP
+
+- Все операции **в памяти**, VFS не модифицируется на диске.
+- Источник — **ZIP-архив**. Бинарные данные — base64.
+- Обработка ошибок загрузки (файл не найден, неверный формат).
+- Команда **`vfs-save путь`** — сохранение VFS обратно в ZIP.
+- Реализованные команды: `ls`, `cd`, `tac`, `du`, `mv`, `vfs-save`.
+- Три тестовых VFS: минимальный, несколько файлов, глубокая иерархия (≥3 уровней).
+
+### Демонстрация
+
+    $ python3 -m src.main --vfs vfs/deep.zip --script scripts/test_stage3.txt
+    ========================================
+    Параметры запуска:
+      VFS: vfs/deep.zip
+      Скрипт: scripts/test_stage3.txt
+    ========================================
+    >>> ls
+    a
+    motd
+    multiline.txt
+    >>> cd a/b/c
+    >>> ls
+    deep.txt
+    >>> tac deep.txt
+    deep file
+    >>> du /
+    38	/
+    >>> cd /
+    >>> tac multiline.txt
+    line3
+    line2
+    line1
+    >>> vfs-save /tmp/vfs_saved.zip
+    VFS сохранена в /tmp/vfs_saved.zip
+    >>> exit

@@ -115,7 +115,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def run_script(vfs: VFS, path: str) -> None:
-    """Выполняет стартовый скрипт, пропуская ошибочные строки."""
+    """Выполняет скрипт, пропуская ошибочные строки."""
     try:
         with open(path, "r", encoding="utf-8") as f:
             for line in f:
