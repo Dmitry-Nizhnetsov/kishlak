@@ -1,0 +1,19 @@
+# Этап 5: mv — перемещение и переименование
+ls
+mv motd motd_new
+ls
+mv motd_new a/
+ls
+ls a
+cd a
+ls
+mv b new_b
+ls
+cd ..
+ls a
+mv a renamed
+ls
+mv nonexistent somewhere
+mv motd motd_renamed
+ls
+exit
